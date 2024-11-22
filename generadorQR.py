@@ -4,6 +4,14 @@ from PIL import Image, ImageTk
 import requests
 from io import BytesIO
 
+# Solución para pantallas con alta densidad de píxeles (High DPI)
+try:
+    from ctypes import windll
+    windll.shcore.SetProcessDpiAwareness(1)
+except:
+    pass
+
+# Textos en diferentes idiomas
 textos = {
     "es": {
         "titulo": "Generador de Código QR",
@@ -38,7 +46,10 @@ qr_image = None
 URL_BANDERA_ES = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Flag_of_Spain.svg/2560px-Flag_of_Spain.svg.png"
 URL_BANDERA_US = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Flag_of_the_United_States.svg/2560px-Flag_of_the_United_States.svg.png"
 
+# Tamaño de banderas
+tamaño_bandera = (80, 50)
 
+# Función para cargar imágenes desde internet
 def cargar_imagen(url, ancho, alto):
     try:
         response = requests.get(url)
@@ -51,13 +62,11 @@ def cargar_imagen(url, ancho, alto):
         messagebox.showerror("Error", f"No se pudo cargar la imagen: {e}")
         return None
 
-
 def cambiar_idioma():
     global idioma_actual
     idioma_actual = "en" if idioma_actual == "es" else "es"
     actualizar_textos()
     actualizar_bandera()
-
 
 def actualizar_textos():
     ventana.title(textos[idioma_actual]["titulo"])
@@ -67,11 +76,15 @@ def actualizar_textos():
     boton_guardar.config(text=textos[idioma_actual]["guardar_qr"])
     etiqueta_cambio_idioma.config(text=textos[idioma_actual]["cambio_idioma"])
 
-
 def actualizar_bandera():
     bandera = bandera_es if idioma_actual == "en" else bandera_us
     canvas.itemconfig(imagen_bandera, image=bandera)
 
+def ajustar_tamano_titulo(event):
+    ancho = ventana.winfo_width()
+    nuevo_tamano = max(16, int(ancho / 25))  # Ajuste proporcional
+    etiqueta_titulo.config(font=("Arial", nuevo_tamano, "bold"))
+    entrada_url.config(width=max(20, int(ancho / 10)))  # Ajusta el ancho del Entry
 
 def generar_qr():
     url = entrada_url.get().strip()
@@ -92,7 +105,6 @@ def generar_qr():
     except Exception as e:
         messagebox.showerror("Error", f"Hubo un problema al generar el QR: {e}")
 
-
 def guardar_qr():
     if not qr_code_image:
         messagebox.showerror("Error", textos[idioma_actual]["error_guardar"])
@@ -108,25 +120,27 @@ def guardar_qr():
     else:
         messagebox.showwarning("Advertencia", textos[idioma_actual]["guardar_cancelado"])
 
-
+# Configuración de la ventana principal
 ventana = Tk()
 ventana.title(textos[idioma_actual]["titulo"])
 ventana.geometry("400x550")
 ventana.configure(bg="#f5f5f5")
 
-tamaño_bandera = (80, 50)
-
+# Carga de banderas
 bandera_es = cargar_imagen(URL_BANDERA_ES, *tamaño_bandera)
 bandera_us = cargar_imagen(URL_BANDERA_US, *tamaño_bandera)
 
+# Elementos de la interfaz
 etiqueta_titulo = Label(ventana, text=textos[idioma_actual]["titulo"], font=("Arial", 18, "bold"), bg="#f5f5f5", fg="#333")
 etiqueta_titulo.pack(pady=10)
 
-etiqueta_enlace = Label(ventana, text=textos[idioma_actual]["ingresa_enlace"], bg="#f5f5f5", fg="#555", font=("Arial", 12))
+ventana.bind("<Configure>", ajustar_tamano_titulo)
+
+etiqueta_enlace = Label(ventana, text=textos[idioma_actual]["ingresa_enlace"], bg="#f5f5f5", fg="#555", font=("Arial", 14))
 etiqueta_enlace.pack()
 
-entrada_url = Entry(ventana, width=40, font=("Arial", 12), relief="flat", borderwidth=2, highlightbackground="#ccc", highlightthickness=1)
-entrada_url.pack(pady=5)
+entrada_url = Entry(ventana, font=("Arial", 12), relief="flat", borderwidth=2, highlightbackground="#ccc", highlightthickness=1)
+entrada_url.pack(pady=5, fill="x", padx=20)
 
 boton_generar = Button(ventana, text=textos[idioma_actual]["generar_qr"], command=generar_qr, bg="#4CAF50", fg="white", font=("Arial", 12, "bold"), relief="flat", padx=10, pady=5)
 boton_generar.pack(pady=10)
@@ -146,4 +160,3 @@ imagen_bandera = canvas.create_image(45, 25, image=bandera_us)
 canvas.tag_bind(imagen_bandera, "<Button-1>", lambda e: cambiar_idioma())
 
 ventana.mainloop()
-
